@@ -15,14 +15,14 @@
 
 //! Resolves types based on the JSON
 
-use crate::{Extrinsics, Overrides, Modules, Result};
-use core::{regex, RustTypeMarker, TypeDetective};
+use super::{Extrinsics, Overrides, Modules};
+use crate::{regex, RustTypeMarker, error::Result};
 
 #[cfg(feature = "default_definitions")]
 mod default {
-    pub const DEFINITIONS: &str = include_str!("./definitions/definitions.json");
-    pub const OVERRIDES: &str = include_str!("./definitions/overrides.json");
-    pub const EXTRINSICS: &str = include_str!("./definitions/extrinsics.json");
+    pub const DEFINITIONS: &str = include_str!("./json/definitions.json");
+    pub const OVERRIDES: &str = include_str!("./json/overrides.json");
+    pub const EXTRINSICS: &str = include_str!("./json/extrinsics.json");
 }
 
 pub struct Builder {
@@ -32,6 +32,14 @@ pub struct Builder {
 }
 
 impl Builder {
+    fn new(modules: Modules, extrinsics: Extrinsics, overrides: Overrides) -> Self {
+        Self {
+            mods: modules,
+            overrides,
+            extrinsics
+        }
+    }
+
     pub fn modules(mut self, modules: Modules) -> Self {
         self.mods = modules;
         self
@@ -71,19 +79,6 @@ impl Builder {
     }
 }
 
-// we need a way to construct the builder when 
-// not using default features
-#[cfg(not(feature = "default_definitions"))]
-impl Builder {
-    fn new(modules: Modules, extrinsics: Extrinsics, overrides: Overrides) -> Self {
-        Self {
-            mods,
-            overrides,
-            extrinsics
-        }
-    }
-}
-
 #[cfg(feature = "default_definitions")]
 impl Default for Builder {
     fn default() -> Self {
@@ -94,6 +89,7 @@ impl Default for Builder {
         }
     }
 }
+
 #[cfg(feature = "default_definitions")]
 impl Default for TypeResolver {
     fn default() -> Self {
@@ -233,13 +229,14 @@ fn sanitize_types(module: &str, ty: &str, chain: &str) -> (String, String, Strin
     (module, ty, chain)
 }
 
-impl TypeDetective for TypeResolver {
-    fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker> {
-        TypeResolver::get(self, chain, spec, module, ty)
-    }
-
-    fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker> {
-        TypeResolver::get_ext_ty(self, chain, spec, ty)
+#[cfg(test)]
+impl TypeResolver {
+    pub fn mock() -> Self {
+        Self {
+            mods: super::Modules::mock(),
+            overrides: super::Overrides::mock(),
+            extrinsics: super::Extrinsics::mock(),
+        }
     }
 }
 
@@ -247,7 +244,7 @@ impl TypeDetective for TypeResolver {
 mod tests {
     use super::*;
     use super::default::*;
-    use core::{EnumField, StructField, StructUnitOrTuple};
+    use crate::{EnumField, StructField, StructUnitOrTuple};
 
     #[test]
     fn should_get_type_from_module() -> Result<()> {

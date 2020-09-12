@@ -2,6 +2,8 @@ use crate::decoder::MetadataError;
 use codec::Error as CodecError;
 use thiserror::Error;
 
+pub type Result<T> = std::result::Result<T, Error>;
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Codec {0}")]
@@ -13,7 +15,12 @@ pub enum Error {
     #[error("error: {0}")]
     Fail(String),
     #[error("parse error {0}")]
-    Regex(#[from] onig::Error)
+    Regex(#[from] onig::Error),
+    #[error("Decode {0}")]
+    Decode(#[from] serde_json::Error),
+    #[error("{0} Not Found")]
+    NotFound(String),
+
 }
 
 impl From<&str> for Error {

@@ -12,8 +12,9 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{ModuleTypes, TypeRange, Result};
+use super::{ModuleTypes, TypeRange};
 use serde::{Deserialize, Serialize};
+use crate::error::Result;
 use std::collections::HashMap;
 
 /// Types that are given priority over those defined in [Modules](struct.Modules.html)
@@ -47,13 +48,24 @@ impl Overrides {
         self.types_spec
             .get(chain)?
             .iter()
-            .find(|f| crate::is_in_range(spec, f))
+            .find(|f| super::is_in_range(spec, f))
             .map(|o| &o.types)
     }
     
     /// get types for a substrate module
     pub fn get_module_types(&self, module: &str) -> Option<&ModuleTypes> {
         self.types_modules.get(module)
+    }
+}
+
+#[cfg(test)]
+impl Overrides {
+    pub fn mock() -> Self {
+        Self {
+            types_modules: HashMap::new(),
+            types_meta: Vec::new(),
+            types_spec: HashMap::new()
+        }
     }
 }
 

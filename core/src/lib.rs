@@ -18,22 +18,16 @@ pub mod decoder;
 mod error;
 pub mod regex;
 mod substrate_types;
+mod definitions;
 
 #[cfg(test)]
 pub mod test_suite;
 
 pub use self::error::Error;
 pub use self::substrate_types::SubstrateType;
+pub use self::definitions::TypeResolver;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
-
-pub trait TypeDetective: fmt::Debug + dyn_clone::DynClone + Send + Sync {
-    /// Get a 'RustTypeMarker'
-    fn get(&self, chain: &str, spec: u32, module: &str, ty: &str) -> Option<&RustTypeMarker>;
-
-    /// get a type specific to decoding extrinsics
-    fn get_extrinsic_ty(&self, chain: &str, spec: u32, ty: &str) -> Option<&RustTypeMarker>;
-}
 
 /// A field with an associated name
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]

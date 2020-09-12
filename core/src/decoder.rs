@@ -41,9 +41,10 @@ pub use runtime_metadata_latest::{StorageEntryModifier, StorageEntryType, Storag
 use crate::{
     error::Error,
     substrate_types::{self, StructField, StructUnitOrTuple, SubstrateType},
-    CommonTypes, RustTypeMarker, TypeDetective,
+    CommonTypes, RustTypeMarker, TypeResolver
 };
 use codec::{Compact, CompactLen, Decode};
+// use serde::Serialize;
 use std::{collections::HashMap, convert::TryFrom};
 
 type SpecVersion = u32;
@@ -52,22 +53,12 @@ type SpecVersion = u32;
 /// hold information about the Runtime Metadata
 /// and maps types inside the runtime metadata to self-describing types in
 /// type-metadata
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Decoder {
     // reference to an item in 'versions' vector
     versions: HashMap<SpecVersion, Metadata>,
-    types: Box<dyn TypeDetective>,
+    types: TypeResolver,
     chain: String,
-}
-
-impl Clone for Decoder {
-    fn clone(&self) -> Self {
-        Self {
-            versions: self.versions.clone(),
-            types: dyn_clone::clone_box(&*self.types),
-            chain: self.chain.clone()
-        }
-    }
 }
 
 /// The type of Entry
@@ -110,10 +101,10 @@ impl std::fmt::Display for Chain {
 
 impl Decoder {
     /// Create new Decoder with specified types
-    pub fn new(types: impl TypeDetective + 'static, chain: Chain) -> Self {
+    pub fn new(types: TypeResolver, chain: Chain) -> Self {
         Self {
             versions: HashMap::default(),
-            types: Box::new(types),
+            types: types,
             chain: chain.to_string(),
         }
     }
@@ -320,7 +311,7 @@ impl Decoder {
             log::debug!("SIGNED EXTRINSIC");
             let signature = self
                 .types
-                .get_extrinsic_ty(self.chain.as_str(), spec, "signature")
+                .get_ext_ty(self.chain.as_str(), spec, "signature")
                 .expect("Signature must not be empty");
             Some(self.decode_single("runtime", spec, signature, data, &mut cursor, false)?)
         } else {
@@ -831,28 +822,9 @@ mod tests {
     };
     use codec::Encode;
 
-    #[derive(Debug, Clone)]
-    struct GenericTypes;
-
-    impl TypeDetective for GenericTypes {
-        fn get(
-            &self,
-            _chain: &str,
-            _spec: u32,
-            _module: &str,
-            _ty: &str,
-        ) -> Option<&RustTypeMarker> {
-            Some(&RustTypeMarker::I128)
-        }
-
-        fn get_extrinsic_ty(&self, _chain: &str, _spec: u32, _ty: &str) -> Option<&RustTypeMarker> {
-            None
-        }
-    }
-
-    #[test]
+#[test]
     fn should_insert_metadata() {
-        let mut decoder = Decoder::new(GenericTypes, Chain::Kusama);
+        let mut decoder = Decoder::new(super::TypeResolver::mock(), Chain::Kusama);
         decoder.register_version(
             test_suite::mock_runtime(0).spec_version,
             &meta_test_suite::test_metadata(),
@@ -878,8 +850,8 @@ mod tests {
 
     #[test]
     fn should_get_version_metadata() {
-        // let types = PolkadotTypes::new().unwrap();
-        let mut decoder = Decoder::new(GenericTypes, Chain::Kusama);
+        
+        let mut decoder = Decoder::new(super::TypeResolver::mock(), Chain::Kusama);
         let rt_version = test_suite::mock_runtime(0);
         let meta = meta_test_suite::test_metadata();
         decoder.register_version(rt_version.spec_version.clone(), &meta);
@@ -900,7 +872,7 @@ mod tests {
     macro_rules! decode_test {
         ( $v: expr, $x:expr, $r: expr) => {{
             let val = $v.encode();
-            let decoder = Decoder::new(GenericTypes, Chain::Kusama);
+            let decoder = Decoder::new(super::TypeResolver::mock(), Chain::Kusama);
             let res = decoder
                 .decode_single("", 1031, &$x, val.as_slice(), &mut 0, false)
                 .unwrap();

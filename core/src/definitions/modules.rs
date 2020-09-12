@@ -13,7 +13,7 @@
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
 use serde::{Serialize, Deserialize, de::{Deserializer, MapAccess, Visitor}};
-use core::{regex, EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
+use crate::{regex, EnumField, RustTypeMarker, SetField, StructField, StructUnitOrTuple};
 use std::{collections::HashMap, fmt};
 use crate::error::Error;
 
@@ -44,6 +44,14 @@ impl Modules {
         self.modules.values().map(|v| v.types.iter()).flatten()
     }
 }
+
+#[cfg(test)]
+impl Modules {
+    pub fn mock() -> Self {
+        Modules::new(raw_json).unwrap()
+    }
+}
+
 
 /// Map of types to their Type Markers
 #[derive(Serialize, Debug, Default, PartialEq, Eq, Clone)]
@@ -250,11 +258,10 @@ fn parse_enum(obj: &serde_json::Value) -> RustTypeMarker {
 
 #[cfg(test)]
 mod tests {
-    use super::Modules;
+    use super::{Modules, ModuleTypes};
     use crate::error::Error;
     use super::*;
-    use crate::ModuleTypes;
-    use core::{RustTypeMarker, SetField, EnumField, StructUnitOrTuple, StructField};
+    use crate::{RustTypeMarker, SetField, EnumField, StructUnitOrTuple, StructField};
     use std::collections::HashMap;
     const RAW_JSON: &'static str = r#"
 {

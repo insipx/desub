@@ -1,5 +1,5 @@
-#[cfg(feature = "default")]
-mod definitions;
+#[cfg(feature = "default-definitions")]
+mod json;
 
 mod overrides;
 mod extrinsics;

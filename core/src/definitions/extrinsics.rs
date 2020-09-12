@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU General Public License
 // along with substrate-desub.  If not, see <http://www.gnu.org/licenses/>.
 
-use super::ModuleTypes;
-use crate::{Result, TypeRange};
+use super::{ModuleTypes, TypeRange};
+use crate::error::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -29,7 +29,14 @@ impl Extrinsics {
         self.0
             .get(chain)?
             .iter()
-            .find(|f| crate::is_in_range(spec, f))
+            .find(|f| super::is_in_range(spec, f))
             .map(|o| &o.types)
+    }
+}
+
+#[cfg(test)]
+impl Extrinsics {
+    pub fn mock() -> Self {
+        Extrinsics(HashMap::new())
     }
 }
